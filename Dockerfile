@@ -16,10 +16,10 @@ RUN apt-get update && apt-get install -y \
         zip \
     && docker-php-ext-install -j$(nproc) pdo \
     && docker-php-ext-install -j$(nproc) pdo_pgsql \
-	&& docker-php-ext-configure gd --with-freetype --with-jpeg \
+	&& docker-php-ext-configure gd --with-freetype --with-jpeg IPE_GD_WITHOUTAVIF=1\
 	&& docker-php-ext-install -j$(nproc) gd \
-    && docker-php-ext-install exif \
-    && docker-php-ext-install zip
+    && docker-php-ext-install -j$(nproc) exif \
+    && docker-php-ext-install -j$(nproc) zip
 
 # Set ServerName to suppres warnings
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
