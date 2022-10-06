@@ -13,3 +13,17 @@ We extends the base container with a couple of extensions that might be needed d
 - PDO
 - PDO PostgreSQL
 - ZIP
+
+## Releasing a new version
+
+There are two ways to release a new version to Docker Hub.
+
+- Using git tags:
+    1. Select the correct next version
+    2. Create a git tag: `git tag -a v<version> -m "message"`
+    3. Push the tag to GitHub: `git push origin <tag>`
+- Create a release using the GitHub ui:
+    1. Select the correct next version
+    2. Click on `Releases` on the right
+    3. Click `Create new release`
+`
