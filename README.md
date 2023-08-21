@@ -4,7 +4,7 @@ The container can be found at: [https://hub.docker.com/r/sebivenlo/prj1-web](htt
 
 This docker container is based on the official [php-apache](https://hub.docker.com/_/php) container. 
 
-We extends the base container with a couple of extensions that might be needed during the project.
+The base container is extended with a couple of extensions that might be needed during the project.
 
 ## Extensions:
 
