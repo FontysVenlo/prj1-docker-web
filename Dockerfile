@@ -1,4 +1,4 @@
-FROM php:8.1.10-apache
+FROM php:8.2.9-apache
 
 # Set maintainer
 LABEL maintainer="Martijn Bonajo"
