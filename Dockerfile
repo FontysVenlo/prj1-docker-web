@@ -32,6 +32,13 @@ RUN mv $PHP_INI_DIR/php.ini-development $PHP_INI_DIR/php.ini \
     && sed -i 's/upload_max_filesize = .*/upload_max_filesize = 20M/g' $PHP_INI_DIR'/php.ini' \
     && sed -i 's/post_max_size = .*/post_max_size = 80M/g' ${PHP_INI_DIR}'/php.ini'
 
+# Create a default non-root user (UID 1000)
+RUN groupadd -g 1000 devgroup \
+ && useradd -u 1000 -g devgroup -m devuser \
+ && chown -R devuser:devgroup /var/www/html
+
+USER devuser
+
 # Only expose port 80
 # We do not expect students to use HTTPS
 EXPOSE 80
