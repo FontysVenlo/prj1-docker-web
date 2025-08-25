@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y \
 	&& docker-php-ext-configure gd --with-freetype --with-jpeg IPE_GD_WITHOUTAVIF=1\
 	&& docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-install -j$(nproc) exif \
-    && docker-php-ext-install -j$(nproc) zip
+    && docker-php-ext-install -j$(nproc) zip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set ServerName to suppres warnings
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
