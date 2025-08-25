@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
 
 # Set ServerName to suppres warnings
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+RUN cat /etc/apache2/mods-available/alias.conf
 
 # Use the default php.ini-development file as our php.ini
 # Only replace the max upload size and post size
@@ -32,12 +33,17 @@ RUN mv $PHP_INI_DIR/php.ini-development $PHP_INI_DIR/php.ini \
     && sed -i 's/upload_max_filesize = .*/upload_max_filesize = 20M/g' $PHP_INI_DIR'/php.ini' \
     && sed -i 's/post_max_size = .*/post_max_size = 80M/g' ${PHP_INI_DIR}'/php.ini'
 
-# Create a default non-root user (UID 1000)
-RUN groupadd -g 1000 devgroup \
- && useradd -u 1000 -g devgroup -m devuser \
- && chown -R devuser:devgroup /var/www/html
+# Create a non-root user without hardcoding UID/GID
+# UID/GID will be patched later by devcontainers with updateRemoteUserUID
+RUN groupadd devgroup \
+ && useradd -m -s /bin/bash -g devgroup devuser
 
-USER devuser
+# Ensure Apache/PHP app dir is writable by devuser
+RUN chown -R devuser:devgroup /var/www/html
+
+# Switch back to root (devcontainers will remap UID/GID at runtime)
+USER root
+
 
 # Only expose port 80
 # We do not expect students to use HTTPS
