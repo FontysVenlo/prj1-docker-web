@@ -26,4 +26,3 @@ There are two ways to release a new version to Docker Hub.
     1. Select the correct next version
     2. Click on `Releases` on the right
     3. Click `Create new release`
-`
