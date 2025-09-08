@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
         libpq-dev \
         libzip-dev \
         zip \
+        git \
     && docker-php-ext-install -j$(nproc) pdo \
     && docker-php-ext-install -j$(nproc) pdo_pgsql \
 	&& docker-php-ext-configure gd --with-freetype --with-jpeg IPE_GD_WITHOUTAVIF=1\
@@ -22,7 +23,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install -j$(nproc) zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Set ServerName to suppres warnings
+# Set ServerName to suppress warnings
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 RUN cat /etc/apache2/mods-available/alias.conf
 
@@ -43,7 +44,6 @@ RUN chown -R devuser:devgroup /var/www/html
 
 # Switch back to root (devcontainers will remap UID/GID at runtime)
 USER root
-
 
 # Only expose port 80
 # We do not expect students to use HTTPS
