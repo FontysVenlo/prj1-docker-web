@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
         libzip-dev \
         zip \
         git \
+        gnupg \
     && docker-php-ext-install -j$(nproc) pdo \
     && docker-php-ext-install -j$(nproc) pdo_pgsql \
 	&& docker-php-ext-configure gd --with-freetype --with-jpeg IPE_GD_WITHOUTAVIF=1\
