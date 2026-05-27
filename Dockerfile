@@ -1,51 +1,71 @@
-FROM php:8.2.29-apache
+# Multi-stage build:
+#   base — shared Apache + PHP + extensions (consumers should never FROM this)
+#   prod — slim image for deployments (no dev tooling, php.ini-production)
+#   dev  — devcontainer-friendly image (extra tooling, devuser, php.ini-development)
+#
+# `docker build .` (no --target) builds dev, matching the previous single-stage
+# behaviour so existing consumers don't break.
 
-# Set maintainer
+# ─── Stage: base ───────────────────────────────────────────────────────────
+FROM php:8.2.29-apache AS base
+
 LABEL maintainer="Martijn Bonajo"
 
-# Set the working directory
 WORKDIR /var/www/html
 
-# Install dependencies, see README
-RUN apt-get update && apt-get install -y \
-		libfreetype6-dev \
-		libjpeg62-turbo-dev \
-		libpng-dev \
+# Extensions installed here apply to both dev and prod, so any PHP code that
+# runs in dev runs in prod and vice versa.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
         libpq-dev \
         libzip-dev \
+    && docker-php-ext-install -j$(nproc) pdo pdo_pgsql \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg IPE_GD_WITHOUTAVIF=1 \
+    && docker-php-ext-install -j$(nproc) gd exif zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Suppress Apache's "Could not reliably determine the server's FQDN" warning.
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+EXPOSE 80
+
+# ─── Stage: prod ───────────────────────────────────────────────────────────
+# Intended for deployments (e.g. the FontysVenlo developer platform). Uses
+# php.ini-production so stack traces don't leak in user-facing responses.
+# No git/gnupg/zip CLI, no devuser — Apache runs as the default www-data.
+FROM base AS prod
+
+# Match dev's upload limits so file-upload behaviour is identical in both
+# targets; only display_errors / error_reporting hardening differs.
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+ && sed -i 's/upload_max_filesize = .*/upload_max_filesize = 20M/g' "$PHP_INI_DIR/php.ini" \
+ && sed -i 's/post_max_size = .*/post_max_size = 80M/g' "$PHP_INI_DIR/php.ini"
+
+# ─── Stage: dev (default) ──────────────────────────────────────────────────
+# Devcontainer-friendly image with extra tooling and a non-root user that
+# devcontainers can remap to the host's UID/GID. Uses php.ini-development
+# so students see PHP errors inline while learning.
+FROM base AS dev
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
         zip \
         git \
         gnupg \
-    && docker-php-ext-install -j$(nproc) pdo \
-    && docker-php-ext-install -j$(nproc) pdo_pgsql \
-	&& docker-php-ext-configure gd --with-freetype --with-jpeg IPE_GD_WITHOUTAVIF=1\
-	&& docker-php-ext-install -j$(nproc) gd \
-    && docker-php-ext-install -j$(nproc) exif \
-    && docker-php-ext-install -j$(nproc) zip \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set ServerName to suppress warnings
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-RUN cat /etc/apache2/mods-available/alias.conf
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini" \
+ && sed -i 's/upload_max_filesize = .*/upload_max_filesize = 20M/g' "$PHP_INI_DIR/php.ini" \
+ && sed -i 's/post_max_size = .*/post_max_size = 80M/g' "$PHP_INI_DIR/php.ini"
 
-# Use the default php.ini-development file as our php.ini
-# Only replace the max upload size and post size
-# TODO: create custom php.ini file
-RUN mv $PHP_INI_DIR/php.ini-development $PHP_INI_DIR/php.ini \
-    && sed -i 's/upload_max_filesize = .*/upload_max_filesize = 20M/g' $PHP_INI_DIR'/php.ini' \
-    && sed -i 's/post_max_size = .*/post_max_size = 80M/g' ${PHP_INI_DIR}'/php.ini'
-
-# Create a non-root user without hardcoding UID/GID
-# UID/GID will be patched later by devcontainers with updateRemoteUserUID
+# Create a non-root user without hardcoding UID/GID. Devcontainers patch
+# UID/GID at runtime via updateRemoteUserUID.
 RUN groupadd devgroup \
- && useradd -m -s /bin/bash -g devgroup devuser
+ && useradd -m -s /bin/bash -g devgroup devuser \
+ && chown -R devuser:devgroup /var/www/html
 
-# Ensure Apache/PHP app dir is writable by devuser
-RUN chown -R devuser:devgroup /var/www/html
-
-# Switch back to root (devcontainers will remap UID/GID at runtime)
+# Switch back to root; devcontainers remap UID/GID at runtime.
 USER root
-
-# Only expose port 80
-# We do not expect students to use HTTPS
-EXPOSE 80

@@ -16,12 +16,23 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Docker meta
-        id: meta
+      - name: Docker meta (dev)
+        id: meta_dev
         uses: docker/metadata-action@v4
         with:
           images: |
             sebivenlo/prj1-web
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Docker meta (prod)
+        id: meta_prod
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            sebivenlo/prj1-web
+          flavor: |
+            suffix=-prod
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -31,11 +42,21 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Build and push dev
         uses: docker/build-push-action@v4
         with:
           context: .
+          target: dev
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_dev.outputs.tags }}
+          labels: ${{ steps.meta_dev.outputs.labels }}
+      - name: Build and push prod
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          target: prod
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_prod.outputs.tags }}
+          labels: ${{ steps.meta_prod.outputs.labels }}
